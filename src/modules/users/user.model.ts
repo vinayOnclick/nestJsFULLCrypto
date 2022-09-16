@@ -68,7 +68,11 @@ export const UserSchema = new mongoose.Schema({
     enum: ['Active', 'InActive'],
   },
 
-  token: {
+  emailToken: {
+    type: String,
+    
+  },
+  mobileToken: {
     type: String,
     
   },

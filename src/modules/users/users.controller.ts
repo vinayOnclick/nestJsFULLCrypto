@@ -34,7 +34,7 @@ import { IsPhoneNumber } from 'class-validator';
 import * as Speakeasy from 'speakeasy';
 import { authenticator } from 'otplib';
 import * as qrcode from 'qrcode';
-
+import { AuthGuard } from '@nestjs/passport';
 @Controller('user')
 @ApiTags('Users')
 @ApiSecurity('api_key')
@@ -57,12 +57,8 @@ export class UsersController {
   ) {
     return await this.userService.login(authCredentialsDto, req, res);
   }
-  // @UseGuards(LocalAuthGuard)
-  // @Post('/Googlelogin')
-  // async Googlelogin(@Body() authCredentialsDto: AuthCredentialsDto, @Request() req) {
-  //   return await this.userService.login(authCredentialsDto, req);
-  // }
 
+  @UseGuards(AuthGuard('jwt'))
   @Put('/verifyEmail')
   async verifyEmail(
     @Body() UserCredentialsDto: UserCredentialsDto,
@@ -71,7 +67,7 @@ export class UsersController {
   ) {
     return await this.userService.emailVerify(UserCredentialsDto, req, res);
   }
-
+  @UseGuards(AuthGuard('jwt'))
   @Put('/verifyMobile')
   async verifyPhone(
     @Body() userDto: UserCredentialsDto,
@@ -81,6 +77,7 @@ export class UsersController {
     return await this.userService.phoneVerify(userDto, req, res);
   }
 
+  @UseGuards(AuthGuard('jwt'))
   @Patch('/enableGoogle2fa/:id')
   async enableGoogle2fa(
     @Param() id: any,
@@ -91,6 +88,7 @@ export class UsersController {
     return await this.userService.Googl2faStatus(id, userDto, req, res);
   }
 
+  @UseGuards(AuthGuard('jwt'))
   @Patch('/enableEmail2fa/:id')
   async enableEmail2fa(
     @Param() id: any,
@@ -98,9 +96,10 @@ export class UsersController {
     @Response() res,
     @Body() userDto: UserCredentialsDto,
   ) {
-    return await this.userService.Googl2faStatus(id, userDto, req, res);
+    return await this.userService.email2faStatus(id, userDto, req, res);
   }
 
+  @UseGuards(AuthGuard('jwt'))
   @Patch('/enableMobile2fa/:id')
   async enableMobile2fa(
     @Param() id: any,
@@ -110,6 +109,19 @@ export class UsersController {
   ) {
     return await this.userService.Mobile2faStatus(id, userDto, req, res);
   }
+
+  @UseGuards(AuthGuard('jwt'))
+  @Patch('/disableMobile2fa/:id')
+  async disableMobile2fa(
+    @Param() id: any,
+    @Request() req,
+    @Response() res,
+    @Body() userDto: UserCredentialsDto,
+  ) {
+    return await this.userService.disableEmail2faStatus(id, userDto, req, res);
+  }
+
+  @UseGuards(AuthGuard('jwt'))
   @Patch('/updateUser/:id')
   async updateUser(
     @Param() id: any,
@@ -121,25 +133,53 @@ export class UsersController {
     return await this.userService.updateUser(id, userDto, req, res);
   }
 
+  @UseGuards(AuthGuard('jwt'))
   @Post('/secretKey')
   async secretKey() {
     try {
       const secret = this.userService.secretKey();
-      return secret
+      return secret;
     } catch (error) {
-      return error
+      return error;
     }
-   
   }
 
+  @UseGuards(AuthGuard('jwt'))
   @Patch('/generate/:id')
-  async generate(@Body() userDto: UserCredentialsDto,@Param() id:string) {
-    const token = await this.userService.generate2faToken(userDto,id);
+  async generateEmail2fa(
+    @Body() userDto: UserCredentialsDto,
+    @Param() id: string,
+  ) {
+    const token = await this.userService.generateEmail2faToken(userDto, id);
     return { token };
   }
+
+  @UseGuards(AuthGuard('jwt'))
   @Patch('/validate/:id')
-  async validate(@Body() userDto: UserCredentialsDto,@Param() id:string) {
-    const token = await this.userService.validate2fa(userDto,id);
+  async validateEmail2fa(
+    @Body() userDto: UserCredentialsDto,
+    @Param() id: string,
+  ) {
+    const token = await this.userService.validateEmail2fa(userDto, id);
+    return { token };
+  }
+
+  @UseGuards(AuthGuard('jwt'))
+  @Patch('/generate/:id')
+  async generateMobile2fa(
+    @Body() userDto: UserCredentialsDto,
+    @Param() id: string,
+  ) {
+    const token = await this.userService.generateMobile2faToken(userDto, id);
+    return { token };
+  }
+  @UseGuards(AuthGuard('jwt'))
+  @Patch('/validate/:id')
+  async validateMobile2fa(
+    @Body() userDto: UserCredentialsDto,
+    @Param() id: string,
+  ) {
+    const token = await this.userService.validateEmail2fa(userDto, id);
     return { token };
   }
 }

@@ -9,7 +9,6 @@ import {
   Body,
 } from '@nestjs/common';
 import { NodeMailer } from 'src/middleware/NodeMailer';
-import configVinay from 'src/config/configVinay';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
 import { User } from './user.model';
@@ -20,7 +19,6 @@ import { JwtPayload } from '../../middleware/jwt-payload.interface';
 import * as bcrypt from 'bcrypt';
 import { JwtService } from '@nestjs/jwt';
 import { MessageBirdService } from 'src/middleware/sms';
-import { response } from 'express';
 import * as Speakeasy from 'speakeasy';
 
 @Injectable()
@@ -66,20 +64,20 @@ export class UsersService {
   async secretKey() {
     try {
       const getsecret = Speakeasy.generateSecret({ length: 20 });
-     return getsecret.base32;
+      return getsecret.base32;
     } catch (error) {
       return error;
     }
   }
 
-  async generate2faToken(
+  async generateEmail2faToken(
     @Body() userDto: UserCredentialsDto,
     @Param() id: string,
   ) {
     try {
       var token: any = await Speakeasy.totp(
         {
-          secret: userDto.secret,
+          secret: userDto.emailToken,
           encoding: 'base32',
         },
         { remaining: 30 - Math.floor((new Date().getTime() / 1000.0) % 30) },
@@ -96,16 +94,59 @@ export class UsersService {
       return error;
     }
   }
-  async validate2fa(@Body() userDto: UserCredentialsDto, @Param() id: string) {
+  async generateMobile2faToken(
+    @Body() userDto: UserCredentialsDto,
+    @Param() id: string,
+  ) {
+    try {
+      var token: any = await Speakeasy.totp(
+        {
+          secret: userDto.mobileToken,
+          encoding: 'base32',
+        },
+        { remaining: 30 - Math.floor((new Date().getTime() / 1000.0) % 30) },
+      );
+
+      const updateToken = await this.usersModel.updateOne(
+        { id },
+        { $set: { token: token } },
+      );
+
+      console.log(updateToken);
+      return { token, updateToken };
+    } catch (error) {
+      return error;
+    }
+  }
+  async validateEmail2fa(
+    @Body() userDto: UserCredentialsDto,
+    @Param() id: string,
+  ) {
     var user: any = await this.usersModel.findOne({ id });
- var {token,secret} = userDto
-   var token = Speakeasy.totp.verify({
+    var { emailToken, secret } = userDto;
+    var token = Speakeasy.totp.verify({
       secret,
       encoding: 'base32',
-      token,
+      emailToken,
       window: 1, //timeWindow
     });
-   console.log(token)
+    console.log(token);
+
+    return { token };
+  }
+  async validateMobile2fa(
+    @Body() userDto: UserCredentialsDto,
+    @Param() id: string,
+  ) {
+    var user: any = await this.usersModel.findOne({ id });
+    var { mobileToken, secret } = userDto;
+    var token = Speakeasy.totp.verify({
+      secret,
+      encoding: 'base32',
+      mobileToken,
+      window: 1, //timeWindow
+    });
+    console.log(token);
 
     return { token };
   }
@@ -231,7 +272,7 @@ export class UsersService {
         });
         const save = await data.save();
         const sent = await NodeMailer.sendEmail({
-          from: configVinay.API_USER,
+          from: process.env.API_USER,
           to: userCred.email,
           subject: 'Its a SMTP message from vinay Sharma',
           html: `Hello ,Please use this OTP ${OTP} to verify your account `,
@@ -285,7 +326,7 @@ export class UsersService {
         }
         if (user.email2faStatus === 'Active') {
           const sent = await NodeMailer.sendEmail({
-            from: configVinay.API_USER,
+            from: process.env.API_USER,
             to: userCred.email,
             subject: 'Its a SMTP message from BOTS',
             html: `Hello ,Please use this OTP  to Complete Your Login `,
@@ -369,7 +410,7 @@ export class UsersService {
         );
         await response.send({
           status: 200,
-          message: 'Updated SuccessFully',
+          message: 'Mobile 2fa Enabled SuccesFully',
           data: enable,
         });
         return;
@@ -393,7 +434,7 @@ export class UsersService {
   ): Promise<any> {
     const user: any = await this.usersModel.findOne({ id });
     const getsecret = Speakeasy.generateSecret({ length: 20 });
-    
+
     try {
       if (!user) {
         return new BadRequestException('user not  existed');
@@ -404,10 +445,76 @@ export class UsersService {
         );
         await response.send({
           status: 200,
-          message: 'Updated SuccessFully',
-          data: enable,getsecret
+          message: 'email 2fa Enabled SuccesFully',
+          data: enable,
+          getsecret,
         });
         return { enable };
+      }
+    } catch (error) {
+      return await response.send({
+        status: 401,
+        message: 'Update Failed',
+        error: error,
+      });
+    }
+  }
+
+  async disableEmail2faStatus(
+    @Param() id: string,
+
+    @Body() dto: UserCredentialsDto,
+    @Req() request: any,
+    @Res() response: any,
+  ): Promise<any> {
+    const user: any = await this.usersModel.findOne({ id });
+    const key = dto.emailToken;
+    try {
+      if (!user) {
+        return new BadRequestException('user not  existed');
+      } else {
+        const disable: any = await this.usersModel.updateOne(
+          { user },
+          { $pull: { key } },
+        );
+        await response.send({
+          status: 200,
+          message: 'email 2fa Enabled SuccesFully',
+          data: disable,
+        });
+        return { disable };
+      }
+    } catch (error) {
+      return await response.send({
+        status: 401,
+        message: 'Update Failed',
+        error: error,
+      });
+    }
+  }
+  async disableMobile2faStatus(
+    @Param() id: string,
+
+    @Body() dto: UserCredentialsDto,
+    @Req() request: any,
+    @Res() response: any,
+  ): Promise<any> {
+    const user: any = await this.usersModel.findOne({ id });
+    const key = dto.mobileToken;
+    try {
+      if (!user) {
+        return new BadRequestException('user not  existed');
+      } else {
+        const disable: any = await this.usersModel.updateOne(
+          { user },
+          { $pull: { key } },
+        );
+        await response.send({
+          status: 200,
+          message: 'mobile 2fa Enabled SuccesFully',
+          data: disable,
+        });
+        return { disable };
       }
     } catch (error) {
       return await response.send({
@@ -452,18 +559,4 @@ export class UsersService {
       });
     }
   }
-  // async setTwoFactorAuthenticationSecret(
-  //   secret: string,
-  //   @Body() dto: UserCredentialsDto,
-  //   @Param() id: string,
-  // ) {
-  //   return this.usersModel.updateOne(
-  //     { id },
-  //     {
-  //       $set: {
-  //         twoFactorAuthenticationSecret: secret,
-  //       },
-  //     },
-  //   );
-  // }
 }

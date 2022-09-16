@@ -27,7 +27,9 @@ export class UserCredentialsDto {
   @IsString()
   secret: string;
   @IsString()
-  token: string;
+  emailToken: string;
+  @IsString()
+  mobileToken: string;
 
   @IsNumber()
   emailOtpCode: number;
