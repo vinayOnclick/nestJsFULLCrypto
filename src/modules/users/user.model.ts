@@ -1,5 +1,5 @@
 import * as mongoose from 'mongoose';
-import * as bcrypt from "bcrypt"
+import * as bcrypt from 'bcrypt';
 let Schema = mongoose.Types,
   ObjectId = Schema.ObjectId;
 export const UserSchema = new mongoose.Schema({
@@ -36,34 +36,49 @@ export const UserSchema = new mongoose.Schema({
     type: String,
     default: '',
   },
+  twoFactorAuthenticationSecret: { type: String },
   status: {
     type: String,
-    default: 'InActive',enum:["Active","InActive"]
+    default: 'InActive',
+    enum: ['Active', 'InActive'],
   },
   activeEmailStatus: {
     type: String,
-    default: 'InActive',enum:["Active","InActive"]
+    default: 'InActive',
+    enum: ['Active', 'InActive'],
   },
   activeMobileStatus: {
     type: String,
-    default: 'InActive',enum:["Active","InActive"]
+    default: 'InActive',
+    enum: ['Active', 'InActive'],
   },
   email2faStatus: {
     type: String,
-    default: 'InActive',enum:["Active","InActive",]
-    
+    default: 'InActive',
+    enum: ['Active', 'InActive'],
   },
   google2faStatus: {
     type: String,
-    default: 'InActive',enum:["Active","InActive"]
+    default: 'InActive',
+    enum: ['Active', 'InActive'],
   },
   mobile2faStatus: {
     type: String,
-    default: 'InActive',enum:["Active","InActive"]
+    default: 'InActive',
+    enum: ['Active', 'InActive'],
   },
 
-  address: [ {type: String},{"pincode":""},{"city":""},{"state":""},{"houseNO":""} ],
-
+  token: {
+    type: String,
+    
+  },
+  address: [
+    { type: String },
+    { pincode: '' },
+    { city: '' },
+    { state: '' },
+    { houseNO: '' },
+  ],
 
   password: {
     type: String,
@@ -105,8 +120,9 @@ UserSchema.methods.checkPassword = function (attempt, callback) {
   });
 };
 UserSchema.index({ loc: '2dsphere' });
+
 export interface User extends mongoose.Document {
-  email: String;
+  email: string;
   address: String;
   phoneNumber: String;
   fullName: String;

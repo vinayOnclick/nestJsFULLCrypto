@@ -6,7 +6,7 @@ export class AuthCredentialsDto {
   @IsEmail()
   email: string;
   @IsString()
-  @IsEmail()
+  
   phoneNumber: string;
   @IsString()
   @IsNotEmpty()

@@ -8,7 +8,7 @@ import {
 import { ApiProperty } from '@nestjs/swagger';
 
 export class UserCredentialsDto {
- 
+
   @IsString()
   @IsEmail()
   email: string;
@@ -24,12 +24,17 @@ export class UserCredentialsDto {
   @IsString()
   address: string;
 
+  @IsString()
+  secret: string;
+  @IsString()
+  token: string;
+
   @IsNumber()
   emailOtpCode: number;
 
   @IsNumber()
   mobileOtpCode: number;
-
+   
   @IsString()
   phoneNumber: string;
   @IsString()
